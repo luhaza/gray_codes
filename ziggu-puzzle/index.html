@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zigguhooked Puzzle</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0f0f1a;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Top bar ── */
+  #topbar {
+    background: #1a1a2e;
+    border-bottom: 1px solid #2a2a4a;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  #topbar h1 { font-size: 1.2rem; color: #7eb8f7; letter-spacing: 0.04em; }
+  #state-display {
+    font-family: monospace;
+    font-size: 1.5rem;
+    letter-spacing: 0.2em;
+    color: #4a9eff;
+    background: #111;
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: 1px solid #2a2a4a;
+  }
+  .topbar-spacer { flex: 1; }
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    padding: 7px 16px;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  button:hover { opacity: 0.85; }
+  button:active { transform: scale(0.97); }
+  #btn-reset { background: #3a3a5a; color: #ccc; }
+  #btn-solve { background: #1e5f9a; color: #fff; }
+  #btn-solve.solving { background: #6b3a1e; }
+
+  /* ── Main layout ── */
+  #main {
+    display: flex;
+    flex: 1;
+  }
+
+  /* ── Dial panel (left) ── */
+  #dial-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    gap: 12px;
+  }
+  #dials-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .dial-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .dial-label {
+    font-size: 0.75rem;
+    color: #666;
+    letter-spacing: 0.05em;
+  }
+  .dial-btn {
+    width: 36px;
+    height: 28px;
+    background: #2a2a4a;
+    color: #aaa;
+    font-size: 1.1rem;
+    line-height: 1;
+    border-radius: 5px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .dial-btn:disabled { opacity: 0.2; cursor: not-allowed; transform: none; }
+  .dial-btn:not(:disabled):hover { background: #3a3a6a; }
+
+  /* circular dial */
+  .dial {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #1e1e30;
+    border: 3px solid #3a3a5a;
+    position: relative;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .dial.can-move {
+    border-color: #3cb371;
+    box-shadow: 0 0 12px #3cb37166;
+  }
+  .dial.optimal {
+    border-color: #ffd700;
+    box-shadow: 0 0 16px #ffd70088;
+    animation: pulse-gold 1.2s ease-in-out infinite;
+  }
+  @keyframes pulse-gold {
+    0%, 100% { box-shadow: 0 0 10px #ffd70066; }
+    50%       { box-shadow: 0 0 22px #ffd700cc; }
+  }
+
+  /* arrow hand — rotates from 12 o'clock position */
+  .dial-hand {
+    position: absolute;
+    width: 4px;
+    height: 28px;
+    background: #ff6b6b;
+    border-radius: 2px 2px 0 0;
+    left: 50%;
+    bottom: 50%;
+    transform-origin: bottom center;
+    transform: translateX(-50%) rotate(0deg);
+    transition: transform 0.3s cubic-bezier(.4,2,.6,1);
+  }
+  /* center dot */
+  .dial::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #555;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .dial-value {
+    position: absolute;
+    bottom: 6px;
+    width: 100%;
+    text-align: center;
+    font-size: 0.7rem;
+    color: #555;
+    font-family: monospace;
+  }
+
+  /* direction hint row */
+  #direction-hint {
+    font-size: 1.1rem;
+    color: #4a6a8a;
+    letter-spacing: 0.3em;
+    margin-top: 4px;
+  }
+
+  /* legend */
+  #legend {
+    font-size: 0.75rem;
+    color: #444;
+    margin-top: 8px;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  /* ── Info panel (right) ── */
+  #info-panel {
+    width: 300px;
+    min-width: 260px;
+    background: #13131f;
+    border-left: 1px solid #2a2a4a;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    gap: 16px;
+    overflow-y: auto;
+  }
+  .info-section h3 {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #555;
+    margin-bottom: 8px;
+  }
+
+  /* progress bar */
+  #progress-bar-bg {
+    background: #222;
+    border-radius: 4px;
+    height: 10px;
+    overflow: hidden;
+  }
+  #progress-bar-fill {
+    background: #4a9eff;
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s;
+    border-radius: 4px;
+  }
+  #progress-label {
+    font-size: 0.78rem;
+    color: #666;
+    margin-top: 4px;
+  }
+
+  /* hint boxes */
+  .hint-box {
+    background: #1a1a2e;
+    border: 1px solid #2a2a4a;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.83rem;
+  }
+  .hint-box + .hint-box { margin-top: 8px; }
+  .hint-box.shortest { border-color: #ffd70044; }
+  .hint-box.longest  { border-color: #9370db44; }
+  .hint-label { font-size: 0.67rem; color: #555; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .hint-text  { color: #bbb; }
+  .hint-text .hl-short { color: #ffd700; font-weight: bold; }
+  .hint-text .hl-long  { color: #b39ddb; font-weight: bold; }
+
+  /* move history */
+  #history-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  #history-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 320px;
+    padding-right: 2px;
+  }
+  #history-list::-webkit-scrollbar { width: 4px; }
+  #history-list::-webkit-scrollbar-track { background: #111; }
+  #history-list::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+  .history-entry {
+    font-size: 0.75rem;
+    font-family: monospace;
+    color: #555;
+    padding: 2px 4px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .history-entry.latest { color: #99b; background: #1e1e2e; }
+
+  /* solved banner */
+  #solved-banner {
+    display: none;
+    background: linear-gradient(135deg, #1a4a1a, #2a6a2a);
+    border: 1px solid #3cb371;
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+    color: #3cb371;
+    font-size: 1rem;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div id="topbar">
+  <h1>Zigguhooked Puzzle</h1>
+  <div id="state-display">000000</div>
+  <span class="topbar-spacer"></span>
+  <button id="btn-reset" onclick="reset()">Reset</button>
+  <button id="btn-solve" onclick="toggleAutoSolve()">Auto-Solve</button>
+</div>
+
+<!-- Main area -->
+<div id="main">
+
+  <!-- Left: dials -->
+  <div id="dial-panel">
+    <div id="dials-row"></div>
+    <div id="direction-hint"></div>
+    <div id="legend">
+      <span style="color:#3cb371">■</span> valid move &nbsp;
+      <span style="color:#ffd700">■</span> optimal (shortest path) &nbsp;
+      <span style="color:#555">■</span> locked
+    </div>
+  </div>
+
+  <!-- Right: info -->
+  <div id="info-panel">
+
+    <div class="info-section">
+      <h3>Progress (Shortest Path)</h3>
+      <div id="progress-bar-bg"><div id="progress-bar-fill"></div></div>
+      <div id="progress-label">0 / 360 moves</div>
+    </div>
+
+    <div class="info-section">
+      <h3>Hints</h3>
+      <div class="hint-box shortest">
+        <div class="hint-label">Shortest next move</div>
+        <div class="hint-text" id="hint-short">—</div>
+      </div>
+      <div class="hint-box longest">
+        <div class="hint-label">Longest next move</div>
+        <div class="hint-text" id="hint-long">—</div>
+      </div>
+    </div>
+
+    <div id="solved-banner">✓ Puzzle Solved! State: 333333</div>
+
+    <div class="info-section" id="history-section">
+      <h3>Move History</h3>
+      <div id="history-list"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── Constants ──────────────────────────────────────────────────────────────
+const N = 6;
+const SHORTEST_MOVES = 360;
+
+// Arrow symbol for each digit value (0–3)
+const ARROWS = ['↙', '→', '↗', '↑'];
+
+// Dial hand rotation from 12 o'clock (CSS transform rotate degrees):
+//   ↑ (3) = 0°,  ↗ (2) = 45°,  → (1) = 90°,  ↙ (0) = 225°
+const HAND_ANGLES = [225, 90, 45, 0];
+
+// ── State ──────────────────────────────────────────────────────────────────
+let state = [0, 0, 0, 0, 0, 0];
+let moveCount = 0;
+let solveInterval = null;
+
+// ── Puzzle Logic ───────────────────────────────────────────────────────────
+
+// A state is valid iff no digit 3 is immediately followed by a non-3.
+function isValid(s) {
+  for (let i = 0; i < N - 1; i++) {
+    if (s[i] === 3 && s[i + 1] !== 3) return false;
+  }
+  return true;
+}
+
+function isSolved(s) {
+  return s.every(d => d === 3);
+}
+
+function applyMove(s, dial, dir) {
+  const ns = [...s];
+  ns[dial] += dir;
+  return ns;
+}
+
+// Returns all legal {dial, dir} pairs from state s.
+// A move is legal if the resulting state is valid and the digit stays in [0,3].
+function validMoves(s) {
+  const moves = [];
+  for (let dial = 0; dial < N; dial++) {
+    for (const dir of [+1, -1]) {
+      const v = s[dial] + dir;
+      if (v < 0 || v > 3) continue;
+      const ns = applyMove(s, dial, dir);
+      if (isValid(ns)) moves.push({ dial, dir });
+    }
+  }
+  return moves;
+}
+
+// Successor rules from paper equations 11 (nextV) and 12 (nextS).
+//
+// The paper indexes digits right-to-left as q_1 (rightmost) .. q_N (leftmost).
+// In our array s[0..5], s[0] is leftmost (most significant).
+// Paper's q_i  = s[N-i],  so i=1 → s[5], i=N → s[0].
+//
+// parity(i) = sum of digits to the LEFT of position i
+//           = s[0] + ... + s[N-i-1]
+//           = s.slice(0, N-i).reduce(sum)
+//
+// rightNeighbor of s[dIdx] = s[dIdx+1]  (paper's q_{i-1}, lower index = further right)
+// leftNeighbor  of s[dIdx] = s[dIdx-1]  (paper's q_{i+1}, higher index = further left)
+//
+// nextV Case 1: parity even  → increment s[dIdx]   (when s[dIdx] < 3)
+// nextV Case 2: parity odd   → decrement s[dIdx]   (when s[dIdx] > 0 AND rightNeighbor ≠ 3)
+// nextS adds one extra skip in Case 2: skip if leftNeighbor === 0 AND s[dIdx] === 3
+//   (i.e. the "03" pattern to the left of the current digit — avoids non-shortest states)
+//
+// Boundary: rightNeighbor is null when dIdx+1 >= N (i=1), treated as ≠ 3 (vacuously ok).
+//           leftNeighbor  is null when dIdx-1 <  0 (i=N), treated as ≠ 0 (no skip).
+function nextSuccessor(s, shortest) {
+  for (let i = 1; i <= N; i++) {
+    const dIdx = N - i;
+    const parity = s.slice(0, dIdx).reduce((a, b) => a + b, 0) % 2;
+    const rightNeighbor = (dIdx + 1 < N) ? s[dIdx + 1] : null;
+    const leftNeighbor  = (dIdx - 1 >= 0) ? s[dIdx - 1] : null;
+
+    if (parity === 0 && s[dIdx] < 3) {
+      return applyMove(s, dIdx, +1);
+    }
+    if (parity === 1 && s[dIdx] > 0 && rightNeighbor !== 3) {
+      if (shortest && leftNeighbor === 0 && s[dIdx] === 3) continue;
+      return applyMove(s, dIdx, -1);
+    }
+  }
+  return null; // no successor → puzzle is solved
+}
+
+const nextV = s => nextSuccessor(s, false);
+const nextS = s => nextSuccessor(s, true);
+
+// ── DOM construction ───────────────────────────────────────────────────────
+
+function buildDials() {
+  const row = document.getElementById('dials-row');
+  row.innerHTML = '';
+  for (let i = 0; i < N; i++) {
+    const w = document.createElement('div');
+    w.className = 'dial-wrapper';
+    w.innerHTML = `
+      <button class="dial-btn" id="btn-plus-${i}" onclick="doMove(${i},+1)">+</button>
+      <div class="dial" id="dial-${i}">
+        <div class="dial-hand" id="hand-${i}"></div>
+        <div class="dial-value" id="dval-${i}">0</div>
+      </div>
+      <button class="dial-btn" id="btn-minus-${i}" onclick="doMove(${i},-1)">−</button>
+      <div class="dial-label">d<sub>${i + 1}</sub></div>
+    `;
+    row.appendChild(w);
+  }
+}
+
+// ── Rendering ──────────────────────────────────────────────────────────────
+
+function renderDials(s, optimalDial) {
+  const moves = validMoves(s);
+  const canInc = new Set(moves.filter(m => m.dir === +1).map(m => m.dial));
+  const canDec = new Set(moves.filter(m => m.dir === -1).map(m => m.dial));
+
+  for (let i = 0; i < N; i++) {
+    const dial = document.getElementById(`dial-${i}`);
+    const hand = document.getElementById(`hand-${i}`);
+    const dval = document.getElementById(`dval-${i}`);
+    const btnP = document.getElementById(`btn-plus-${i}`);
+    const btnM = document.getElementById(`btn-minus-${i}`);
+
+    hand.style.transform = `translateX(-50%) rotate(${HAND_ANGLES[s[i]]}deg)`;
+    dval.textContent = s[i];
+
+    const canMove = canInc.has(i) || canDec.has(i);
+    dial.classList.toggle('optimal',  i === optimalDial);
+    dial.classList.toggle('can-move', canMove && i !== optimalDial);
+
+    btnP.disabled = !canInc.has(i);
+    btnM.disabled = !canDec.has(i);
+  }
+
+  document.getElementById('direction-hint').textContent =
+    s.map(d => ARROWS[d]).join('  ');
+}
+
+function updateInfoPanel(s) {
+  document.getElementById('state-display').textContent = s.join('');
+
+  const pct = Math.min(100, (moveCount / SHORTEST_MOVES) * 100);
+  document.getElementById('progress-bar-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent =
+    `${moveCount} / ${SHORTEST_MOVES} moves`;
+
+  const ns = nextS(s);
+  const nv = nextV(s);
+
+  function hintText(next, cls) {
+    if (!next) return 'Puzzle solved!';
+    for (let i = 0; i < N; i++) {
+      if (next[i] !== s[i]) {
+        const dir = next[i] > s[i] ? '+1' : '−1';
+        const arrow = ARROWS[next[i]];
+        return `Rotate <span class="${cls}">d${i + 1}</span> ${dir} → ${arrow}`;
+      }
+    }
+    return '—';
+  }
+  document.getElementById('hint-short').innerHTML = hintText(ns, 'hl-short');
+  document.getElementById('hint-long').innerHTML  = hintText(nv, 'hl-long');
+
+  document.getElementById('solved-banner').style.display =
+    isSolved(s) ? 'block' : 'none';
+}
+
+function getOptimalDial(s) {
+  const ns = nextS(s);
+  if (!ns) return -1;
+  for (let i = 0; i < N; i++) {
+    if (ns[i] !== s[i]) return i;
+  }
+  return -1;
+}
+
+function render() {
+  renderDials(state, getOptimalDial(state));
+  updateInfoPanel(state);
+}
+
+// ── Move history ───────────────────────────────────────────────────────────
+
+function addHistory(dial, dir, newState) {
+  const list = document.getElementById('history-list');
+
+  // de-highlight previous latest
+  const prev = list.querySelector('.latest');
+  if (prev) prev.classList.remove('latest');
+
+  const el = document.createElement('div');
+  el.className = 'history-entry latest';
+  el.textContent =
+    `#${moveCount}  d${dial + 1} ${dir > 0 ? '+1' : '−1'}  →  ${newState.join('')}  ${ARROWS[newState[dial]]}`;
+  list.appendChild(el);
+  list.scrollTop = list.scrollHeight;
+}
+
+// ── User actions ───────────────────────────────────────────────────────────
+
+function doMove(dial, dir) {
+  const v = state[dial] + dir;
+  if (v < 0 || v > 3) return;
+  const ns = applyMove(state, dial, dir);
+  if (!isValid(ns)) return;
+  state = ns;
+  moveCount++;
+  addHistory(dial, dir, state);
+  render();
+  if (isSolved(state)) stopAutoSolve();
+}
+
+function reset() {
+  stopAutoSolve();
+  state = [0, 0, 0, 0, 0, 0];
+  moveCount = 0;
+  document.getElementById('history-list').innerHTML = '';
+  render();
+}
+
+function toggleAutoSolve() {
+  solveInterval ? stopAutoSolve() : startAutoSolve();
+}
+
+function startAutoSolve() {
+  if (isSolved(state)) return;
+  const btn = document.getElementById('btn-solve');
+  btn.textContent = 'Pause';
+  btn.classList.add('solving');
+  solveInterval = setInterval(() => {
+    const ns = nextS(state);
+    if (!ns) { stopAutoSolve(); return; }
+    for (let i = 0; i < N; i++) {
+      if (ns[i] !== state[i]) { doMove(i, ns[i] - state[i]); break; }
+    }
+    if (isSolved(state)) stopAutoSolve();
+  }, 400);
+}
+
+function stopAutoSolve() {
+  if (solveInterval) { clearInterval(solveInterval); solveInterval = null; }
+  const btn = document.getElementById('btn-solve');
+  btn.textContent = 'Auto-Solve';
+  btn.classList.remove('solving');
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+buildDials();
+render();
+</script>
+</body>
+</html>
