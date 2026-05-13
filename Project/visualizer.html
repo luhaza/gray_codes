@@ -777,6 +777,7 @@ function autoStep(direction) {
 }
 
 function startAutoplay() {
+  if (appState.autoIdx >= appState.sequence.length - 1) return;
   const ms = speedToMs(parseInt(document.getElementById('speed-slider').value, 10));
   appState.autoplayTimer = setInterval(() => {
     if (appState.autoIdx >= appState.sequence.length - 1) {
