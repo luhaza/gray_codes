@@ -755,6 +755,67 @@ function executeMove(result) {
 
 // Boot
 init();
+
+// ── Auto-solve Controls ─────────────────────────────────────────
+
+function autoStep(direction) {
+  const { sequence } = appState;
+  const nextIdx = appState.autoIdx + direction;
+  if (nextIdx < 0 || nextIdx >= sequence.length) return;
+
+  appState.autoIdx = nextIdx;
+  appState.currentPartition = sequence[nextIdx];
+
+  // Rebuild history up to current index for sidebar op display.
+  appState.history = sequence.slice(0, nextIdx + 1).map((part, i) => ({
+    partition: part,
+    op: i === 0 ? null : classifyOp(sequence[i - 1], part),
+    from: i === 0 ? null : sequence[i - 1],
+  }));
+  appState.visited = new Set(sequence.slice(0, nextIdx + 1).map(partKey));
+  renderAll();
+}
+
+function startAutoplay() {
+  const ms = speedToMs(parseInt(document.getElementById('speed-slider').value, 10));
+  appState.autoplayTimer = setInterval(() => {
+    if (appState.autoIdx >= appState.sequence.length - 1) {
+      stopAutoplay();
+      return;
+    }
+    autoStep(1);
+  }, ms);
+  document.getElementById('btn-play').textContent = '⏸ Pause';
+}
+
+function stopAutoplay() {
+  clearInterval(appState.autoplayTimer);
+  appState.autoplayTimer = null;
+  document.getElementById('btn-play').textContent = '▶ Play';
+}
+
+document.getElementById('btn-play').addEventListener('click', () => {
+  if (appState.mode !== 'autosolve') return;
+  if (appState.autoplayTimer) stopAutoplay();
+  else startAutoplay();
+});
+
+document.getElementById('btn-prev').addEventListener('click', () => {
+  if (appState.mode !== 'autosolve') return;
+  stopAutoplay();
+  autoStep(-1);
+});
+
+document.getElementById('btn-next').addEventListener('click', () => {
+  if (appState.mode !== 'autosolve') return;
+  stopAutoplay();
+  autoStep(1);
+});
+
+// Speed slider restarts autoplay at new speed if currently playing.
+document.getElementById('speed-slider').addEventListener('input', () => {
+  if (appState.autoplayTimer) { stopAutoplay(); startAutoplay(); }
+});
 </script>
 </body>
 </html>
