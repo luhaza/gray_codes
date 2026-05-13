@@ -324,6 +324,7 @@ function neighborsMove(p) {
       const k = partKey(sorted);
       if (k !== orig) seen.set(k, sorted);
     }
+    // Brand-new singleton part — not reachable via i→j when no spare index exists.
     if (p[i] > 1) {
       const np = [...p]; np[i]--;
       const sorted = [...np, 1].sort((a, b) => b - a);
@@ -368,6 +369,7 @@ function neighborsCombined(p) {
 }
 
 // Classify the operation from p to q.
+// Split/merge wins over move when both neighborhoods contain q.
 function classifyOp(p, q) {
   const qk = partKey(q);
   const smKeys = neighborsSplitMerge(p).map(partKey);
