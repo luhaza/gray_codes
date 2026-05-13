@@ -451,6 +451,86 @@ function greedyWarnsdorff(n) {
     assert(partKey(seq[0]) === partKey(Array(n).fill(1)), `greedyWarnsdorff(${n}) starts at (1,...,1)`);
   }
 })();
+
+// ── App State ───────────────────────────────────────────────────
+
+const appState = {
+  n: 6,
+  mode: 'interactive',      // 'interactive' | 'autosolve'
+  sequence: [],             // precomputed greedyWarnsdorff sequence
+  allParts: [],             // all partitions of n (for total count)
+  currentPartition: null,   // current partition (array)
+  history: [],              // [{partition, op, from}] growing list
+  visited: new Set(),       // Set of partKey strings
+  selected: null,           // null | rowIndex of selected dot
+  autoplayTimer: null,      // setInterval ID or null
+  autoIdx: 0,               // current step index in autosolve
+};
+
+// Speed slider: value 1..10 → interval ms (2000ms..100ms)
+function speedToMs(sliderVal) {
+  return Math.round(2000 - (sliderVal - 1) * (1900 / 9));
+}
+
+function init() {
+  const n = appState.n;
+  appState.allParts = allPartitions(n);
+  appState.sequence = greedyWarnsdorff(n);
+  appState.currentPartition = Array(n).fill(1);
+  appState.history = [{ partition: appState.currentPartition, op: null, from: null }];
+  appState.visited = new Set([partKey(appState.currentPartition)]);
+  appState.selected = null;
+  appState.autoIdx = 0;
+  clearInterval(appState.autoplayTimer);
+  appState.autoplayTimer = null;
+  document.getElementById('btn-play').textContent = '▶ Play';
+  renderAll();
+}
+
+// n slider
+document.getElementById('n-slider').addEventListener('input', e => {
+  appState.n = parseInt(e.target.value, 10);
+  document.getElementById('n-value').textContent = appState.n;
+  init();
+});
+
+// Mode tabs
+document.getElementById('tab-interactive').addEventListener('click', () => setMode('interactive'));
+document.getElementById('tab-autosolve').addEventListener('click',   () => setMode('autosolve'));
+
+function setMode(mode) {
+  if (appState.mode === mode) return;
+  clearInterval(appState.autoplayTimer);
+  appState.autoplayTimer = null;
+  appState.mode = mode;
+  appState.selected = null;
+  // Reset to start when switching modes
+  appState.currentPartition = appState.sequence[0];
+  appState.history = [{ partition: appState.sequence[0], op: null, from: null }];
+  appState.visited = new Set([partKey(appState.sequence[0])]);
+  appState.autoIdx = 0;
+  document.getElementById('btn-play').textContent = '▶ Play';
+  document.getElementById('tab-interactive').classList.toggle('active', mode === 'interactive');
+  document.getElementById('tab-autosolve').classList.toggle('active', mode === 'autosolve');
+  document.getElementById('autosolve-controls').classList.toggle('disabled', mode === 'interactive');
+  renderAll();
+}
+
+// Reset button
+document.getElementById('btn-reset').addEventListener('click', init);
+
+// Stub render functions — replaced in later tasks
+function renderAll() {
+  renderSidebar();
+  renderDiagram();
+  renderHistory();
+}
+function renderSidebar() {}
+function renderDiagram() {}
+function renderHistory() {}
+
+// Boot
+init();
 </script>
 </body>
 </html>
