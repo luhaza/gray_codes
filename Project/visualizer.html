@@ -293,7 +293,123 @@ body {
 </div>
 
 <script>
-// JS added in later tasks
+// ── Partition Math ──────────────────────────────────────────────
+
+function partKey(p) { return JSON.stringify(p); }
+
+// All partitions of n as sorted-descending arrays.
+function allPartitions(n) {
+  const result = [];
+  function helper(remaining, maxPart, current) {
+    if (remaining === 0) { result.push([...current]); return; }
+    for (let part = Math.min(remaining, maxPart); part >= 1; part--) {
+      current.push(part);
+      helper(remaining - part, part, current);
+      current.pop();
+    }
+  }
+  helper(n, n, []);
+  return result;
+}
+
+// Move-one-unit neighbors: move 1 between any two parts, or split off a new singleton.
+function neighborsMove(p) {
+  const seen = new Map();
+  const orig = partKey(p);
+  for (let i = 0; i < p.length; i++) {
+    for (let j = 0; j < p.length; j++) {
+      if (i === j) continue;
+      const np = [...p]; np[i]--; np[j]++;
+      const sorted = np.filter(x => x > 0).sort((a, b) => b - a);
+      const k = partKey(sorted);
+      if (k !== orig) seen.set(k, sorted);
+    }
+    if (p[i] > 1) {
+      const np = [...p]; np[i]--;
+      const sorted = [...np, 1].sort((a, b) => b - a);
+      const k = partKey(sorted);
+      if (k !== orig) seen.set(k, sorted);
+    }
+  }
+  return [...seen.values()];
+}
+
+// Split/merge neighbors.
+function neighborsSplitMerge(p) {
+  const seen = new Map();
+  const orig = partKey(p);
+  // Splits
+  for (let i = 0; i < p.length; i++) {
+    for (let a = 1; a < p[i]; a++) {
+      const b = p[i] - a;
+      const np = [...p.slice(0, i), ...p.slice(i + 1), a, b].sort((a, b) => b - a);
+      const k = partKey(np);
+      if (k !== orig) seen.set(k, np);
+    }
+  }
+  // Merges
+  for (let i = 0; i < p.length; i++) {
+    for (let j = i + 1; j < p.length; j++) {
+      const merged = p[i] + p[j];
+      const np = p.filter((_, idx) => idx !== i && idx !== j).concat(merged).sort((a, b) => b - a);
+      const k = partKey(np);
+      if (k !== orig) seen.set(k, np);
+    }
+  }
+  return [...seen.values()];
+}
+
+// Combined neighborhood.
+function neighborsCombined(p) {
+  const seen = new Map();
+  for (const n of neighborsMove(p)) seen.set(partKey(n), n);
+  for (const n of neighborsSplitMerge(p)) seen.set(partKey(n), n);
+  return [...seen.values()];
+}
+
+// Classify the operation from p to q.
+function classifyOp(p, q) {
+  const qk = partKey(q);
+  const smKeys = neighborsSplitMerge(p).map(partKey);
+  if (smKeys.includes(qk)) return q.length > p.length ? 'split' : 'merge';
+  return 'move';
+}
+
+// ── Inline Tests (run on page load, check browser console) ──────
+(function runTests() {
+  function assert(cond, msg) {
+    if (!cond) console.error('FAIL:', msg);
+    else console.log('PASS:', msg);
+  }
+
+  // allPartitions
+  assert(allPartitions(1).length === 1, 'allPartitions(1)=1');
+  assert(allPartitions(4).length === 5, 'allPartitions(4)=5');
+  assert(allPartitions(6).length === 11, 'allPartitions(6)=11');
+
+  // neighborsMove
+  const nm111 = neighborsMove([1,1,1]).map(partKey);
+  assert(nm111.includes(partKey([2,1])), 'move [1,1,1]->[2,1]');
+  assert(!nm111.includes(partKey([1,1,1])), 'move no self');
+
+  const nm321 = neighborsMove([3,2,1]).map(partKey);
+  assert(nm321.includes(partKey([4,1,1])), 'move [3,2,1]->[4,1,1]');
+  assert(nm321.includes(partKey([3,3])),   'move [3,2,1]->[3,3]');
+
+  // neighborsSplitMerge
+  const nsm4 = neighborsSplitMerge([4]).map(partKey);
+  assert(nsm4.includes(partKey([2,2])), 'sm [4]->[2,2]');
+  assert(nsm4.includes(partKey([3,1])), 'sm [4]->[3,1]');
+
+  const nsm22 = neighborsSplitMerge([2,2]).map(partKey);
+  assert(nsm22.includes(partKey([4])), 'sm [2,2]->[4]');
+
+  // classifyOp
+  assert(classifyOp([3,2,1], [4,1,1]) === 'move',  'classifyOp move');
+  assert(classifyOp([4],     [2,2])  === 'split', 'classifyOp split');
+  assert(classifyOp([2,2],   [4])    === 'merge', 'classifyOp merge');
+  assert(classifyOp([3,2,1], [3,3])  === 'merge', 'classifyOp [3,2,1]->[3,3] is merge');
+})();
 </script>
 </body>
 </html>
