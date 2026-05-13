@@ -1,0 +1,142 @@
+<h2>How should the 6 dials be displayed?</h2>
+<p class="subtitle">Each dial has 4 positions (0–3). Pick the style that feels clearest for an educational tool.</p>
+
+<div class="cards">
+
+  <!-- Option A: Circular rotating dials -->
+  <div class="card" data-choice="A" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px; background:#1a1a2e; border-radius:8px 8px 0 0;">
+      <div style="display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap;">
+        <!-- 6 dials, state example: 0,1,2,3,1,0 -->
+        <div style="width:60px;height:60px;border-radius:50%;background:#222;border:3px solid #4a9eff;display:flex;align-items:center;justify-content:center;position:relative;">
+          <div style="width:4px;height:24px;background:#ff6b6b;border-radius:2px;transform:rotate(135deg);transform-origin:50% 100%;position:absolute;bottom:50%;"></div>
+          <div style="position:absolute;bottom:-18px;font-size:10px;color:#aaa;">d₁=0</div>
+        </div>
+        <div style="width:60px;height:60px;border-radius:50%;background:#222;border:3px solid #4a9eff;display:flex;align-items:center;justify-content:center;position:relative;">
+          <div style="width:4px;height:24px;background:#ff6b6b;border-radius:2px;transform:rotate(0deg);transform-origin:50% 100%;position:absolute;bottom:50%;"></div>
+          <div style="position:absolute;bottom:-18px;font-size:10px;color:#aaa;">d₂=1</div>
+        </div>
+        <div style="width:60px;height:60px;border-radius:50%;background:#222;border:3px solid #4a9eff;display:flex;align-items:center;justify-content:center;position:relative;">
+          <div style="width:4px;height:24px;background:#ff6b6b;border-radius:2px;transform:rotate(-45deg);transform-origin:50% 100%;position:absolute;bottom:50%;"></div>
+          <div style="position:absolute;bottom:-18px;font-size:10px;color:#aaa;">d₃=2</div>
+        </div>
+        <div style="width:60px;height:60px;border-radius:50%;background:#222;border:3px solid #ffd93d;display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 0 10px #ffd93d88;">
+          <div style="width:4px;height:24px;background:#ff6b6b;border-radius:2px;transform:rotate(-90deg);transform-origin:50% 100%;position:absolute;bottom:50%;"></div>
+          <div style="position:absolute;bottom:-18px;font-size:10px;color:#ffd93d;">d₄=3 ✓</div>
+        </div>
+        <div style="width:60px;height:60px;border-radius:50%;background:#222;border:3px solid #4a9eff;display:flex;align-items:center;justify-content:center;position:relative;">
+          <div style="width:4px;height:24px;background:#ff6b6b;border-radius:2px;transform:rotate(0deg);transform-origin:50% 100%;position:absolute;bottom:50%;"></div>
+          <div style="position:absolute;bottom:-18px;font-size:10px;color:#aaa;">d₅=1</div>
+        </div>
+        <div style="width:60px;height:60px;border-radius:50%;background:#222;border:3px solid #4a9eff;display:flex;align-items:center;justify-content:center;position:relative;">
+          <div style="width:4px;height:24px;background:#ff6b6b;border-radius:2px;transform:rotate(135deg);transform-origin:50% 100%;position:absolute;bottom:50%;"></div>
+          <div style="position:absolute;bottom:-18px;font-size:10px;color:#aaa;">d₆=0</div>
+        </div>
+      </div>
+      <div style="margin-top:28px;text-align:center;font-family:monospace;color:#4a9eff;font-size:13px;">State: 012310 &nbsp;|&nbsp; ↙ → ↗ ↑ → ↙</div>
+    </div>
+    <div class="card-body">
+      <h3>A — Circular Dials</h3>
+      <p>Rotating clock-like dials with an arrow hand. Visually mimics the physical Zigguhooked puzzle. Click +/− buttons to rotate each dial.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Arrow tile grid -->
+  <div class="card" data-choice="B" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px; background:#1a1a2e; border-radius:8px 8px 0 0;">
+      <div style="display:flex; gap:8px; justify-content:center; align-items:center; flex-wrap:wrap;">
+        <!-- Arrow tiles for state 0,1,2,3,1,0 -->
+        <div style="width:64px;height:64px;background:#1e3a5f;border:2px solid #4a9eff;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+          <div style="font-size:26px;line-height:1;">↙</div>
+          <div style="font-size:10px;color:#888;">d₁=0</div>
+        </div>
+        <div style="width:64px;height:64px;background:#1e3a5f;border:2px solid #4a9eff;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+          <div style="font-size:26px;line-height:1;">→</div>
+          <div style="font-size:10px;color:#888;">d₂=1</div>
+        </div>
+        <div style="width:64px;height:64px;background:#1e3a5f;border:2px solid #4a9eff;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+          <div style="font-size:26px;line-height:1;">↗</div>
+          <div style="font-size:10px;color:#888;">d₃=2</div>
+        </div>
+        <div style="width:64px;height:64px;background:#2a3a1a;border:2px solid #6bcb77;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 0 8px #6bcb7788;">
+          <div style="font-size:26px;line-height:1;">↑</div>
+          <div style="font-size:10px;color:#6bcb77;">d₄=3 ✓</div>
+        </div>
+        <div style="width:64px;height:64px;background:#1e3a5f;border:2px solid #4a9eff;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;">
+          <div style="font-size:26px;line-height:1;">→</div>
+          <div style="font-size:10px;color:#888;">d₅=1</div>
+        </div>
+        <div style="width:64px;height:64px;background:#1e3a5f;border:2px solid #ff6b6b;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:0 0 8px #ff6b6b88;">
+          <div style="font-size:26px;line-height:1;">↙</div>
+          <div style="font-size:10px;color:#ff6b6b;">d₆ next</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;text-align:center;font-family:monospace;color:#4a9eff;font-size:13px;">State: 012310 &nbsp;|&nbsp; Click a dial to cycle it</div>
+    </div>
+    <div class="card-body">
+      <h3>B — Arrow Tiles</h3>
+      <p>Simple square tiles showing the arrow direction. Highlighted tiles show which dials can be moved. Click a tile to cycle it (if valid). Clean and easy to read.</p>
+    </div>
+  </div>
+
+  <!-- Option C: Dashboard with state string + maze view -->
+  <div class="card" data-choice="C" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px; background:#1a1a2e; border-radius:8px 8px 0 0; font-family:monospace;">
+      <div style="display:flex;gap:16px;align-items:stretch;">
+        <!-- Left: dials as number+arrow compact -->
+        <div style="flex:1;">
+          <div style="color:#aaa;font-size:11px;margin-bottom:6px;">DIALS</div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;align-items:center;gap:8px;background:#252525;padding:4px 8px;border-radius:4px;border-left:3px solid #555;">
+              <span style="color:#888;width:20px;">d₁</span>
+              <span style="font-size:18px;">↙</span>
+              <span style="color:#666;font-size:12px;">0</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;background:#252525;padding:4px 8px;border-radius:4px;border-left:3px solid #555;">
+              <span style="color:#888;width:20px;">d₂</span>
+              <span style="font-size:18px;">→</span>
+              <span style="color:#666;font-size:12px;">1</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;background:#252525;padding:4px 8px;border-radius:4px;border-left:3px solid #555;">
+              <span style="color:#888;width:20px;">d₃</span>
+              <span style="font-size:18px;">↗</span>
+              <span style="color:#666;font-size:12px;">2</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;background:#1a3a1a;padding:4px 8px;border-radius:4px;border-left:3px solid #6bcb77;">
+              <span style="color:#6bcb77;width:20px;">d₄</span>
+              <span style="font-size:18px;">↑</span>
+              <span style="color:#6bcb77;font-size:12px;">3 ✓</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;background:#3a1a1a;padding:4px 8px;border-radius:4px;border-left:3px solid #ff6b6b;">
+              <span style="color:#ff6b6b;width:20px;">d₅</span>
+              <span style="font-size:18px;">→</span>
+              <span style="color:#ff6b6b;font-size:12px;">1 ← next</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;background:#252525;padding:4px 8px;border-radius:4px;border-left:3px solid #555;">
+              <span style="color:#888;width:20px;">d₆</span>
+              <span style="font-size:18px;">↙</span>
+              <span style="color:#666;font-size:12px;">0</span>
+            </div>
+          </div>
+        </div>
+        <!-- Right: info panel -->
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+          <div style="color:#aaa;font-size:11px;">STATE</div>
+          <div style="background:#111;padding:6px 10px;border-radius:4px;font-size:20px;letter-spacing:4px;color:#4a9eff;">012310</div>
+          <div style="color:#aaa;font-size:11px;margin-top:4px;">PROGRESS</div>
+          <div style="background:#111;border-radius:4px;overflow:hidden;height:10px;">
+            <div style="background:#4a9eff;width:40%;height:100%;"></div>
+          </div>
+          <div style="color:#666;font-size:11px;">144 / 361 moves (shortest)</div>
+          <div style="color:#aaa;font-size:11px;margin-top:4px;">HINT</div>
+          <div style="background:#1a3a1a;padding:4px 8px;border-radius:4px;color:#6bcb77;font-size:12px;">Next optimal: rotate d₅ ↑</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Dashboard</h3>
+      <p>Compact list of all dials with a state string, progress bar, and hint panel. More information-dense. Best for the educational/exploratory goal.</p>
+    </div>
+  </div>
+
+</div>
