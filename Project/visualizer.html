@@ -649,11 +649,60 @@ function renderSidebar() {
 // Stub — implemented in Task 7
 function renderHistory() {}
 
-// Stubs — filled in Task 6
-function getGhostSlots(p, selectedRow) { return []; }
-function selectDot(rowIdx) {}
-function deselectDot() {}
-function executeMove(result) {}
+// ── Interactive Interaction ─────────────────────────────────────
+
+// Computes where a dot picked up from selectedRow can validly land.
+// Returns array of {type:'row', displayRow, result} | {type:'newrow', result}.
+function getGhostSlots(p, selectedRow) {
+  // Build intermediate partition after removing the end dot of selectedRow.
+  const inter = [...p];
+  inter[selectedRow]--;
+  const rowDeleted = inter[selectedRow] === 0;
+  if (rowDeleted) inter.splice(selectedRow, 1);
+
+  const origKey = partKey(p);
+  const ghosts = [];
+
+  // Try placing the dot at the end of each row in the intermediate partition.
+  for (let j = 0; j < inter.length; j++) {
+    // Adding 1 to inter[j] must not exceed the row above.
+    if (j > 0 && inter[j] + 1 > inter[j - 1]) continue;
+    const result = [...inter]; result[j]++;
+    if (partKey(result) === origKey) continue; // no-op
+
+    // Map intermediate row index j back to original diagram row index.
+    const displayRow = (rowDeleted && j >= selectedRow) ? j + 1 : j;
+    ghosts.push({ type: 'row', displayRow, result });
+  }
+
+  // Try placing the dot as a new bottom row (size 1).
+  const newRowResult = [...inter, 1];
+  if (partKey(newRowResult) !== origKey) {
+    ghosts.push({ type: 'newrow', result: newRowResult });
+  }
+
+  return ghosts;
+}
+
+function selectDot(rowIdx) {
+  appState.selected = rowIdx;
+  renderDiagram(); // re-render to show selected dot + ghost slots
+}
+
+function deselectDot() {
+  appState.selected = null;
+  renderDiagram();
+}
+
+function executeMove(result) {
+  const prev = appState.currentPartition;
+  const op   = classifyOp(prev, result);
+  appState.currentPartition = result;
+  appState.selected = null;
+  appState.history.push({ partition: result, op, from: prev });
+  appState.visited.add(partKey(result));
+  renderAll();
+}
 
 // Boot
 init();
