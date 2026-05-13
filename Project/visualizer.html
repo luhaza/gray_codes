@@ -646,8 +646,57 @@ function renderSidebar() {
       : `Step — / —`;
 }
 
-// Stub — implemented in Task 7
-function renderHistory() {}
+// ── History Panel ───────────────────────────────────────────────
+
+function renderHistory() {
+  const { history, mode, sequence, autoIdx } = appState;
+  const listEl = document.getElementById('history-list');
+  listEl.innerHTML = '';
+
+  if (mode === 'interactive') {
+    // Show only visited history, growing as user moves.
+    history.forEach((entry, i) => {
+      const el = buildHistoryRow(i + 1, entry.op, entry.partition, i === history.length - 1);
+      listEl.appendChild(el);
+    });
+  } else {
+    // Auto-solve: show full precomputed sequence.
+    // Past and current steps are filled in; future steps are greyed out.
+    sequence.forEach((part, i) => {
+      const op = i === 0 ? null : classifyOp(sequence[i - 1], part);
+      const isCurrent = i === autoIdx;
+      const isFuture  = i > autoIdx;
+      const el = buildHistoryRow(i + 1, op, isFuture ? null : part, isCurrent);
+      if (isFuture) el.classList.add('future');
+      listEl.appendChild(el);
+    });
+  }
+
+  // Auto-scroll: keep current entry visible.
+  const currentEl = listEl.querySelector('.history-entry.current');
+  if (currentEl) currentEl.scrollIntoView({ block: 'nearest' });
+}
+
+function buildHistoryRow(stepNum, op, partition, isCurrent) {
+  const entry = document.createElement('div');
+  entry.className = 'history-entry' + (isCurrent ? ' current' : '');
+
+  const stepEl = document.createElement('span');
+  stepEl.className = 'history-step';
+  stepEl.textContent = stepNum;
+
+  const opDot = document.createElement('div');
+  opDot.className = 'history-op-dot ' + (op ? 'op-dot-' + op : 'op-dot-none');
+
+  const partEl = document.createElement('span');
+  partEl.className = 'history-partition';
+  partEl.textContent = partition ? '(' + partition.join(', ') + ')' : '—';
+
+  entry.appendChild(stepEl);
+  entry.appendChild(opDot);
+  entry.appendChild(partEl);
+  return entry;
+}
 
 // ── Interactive Interaction ─────────────────────────────────────
 
