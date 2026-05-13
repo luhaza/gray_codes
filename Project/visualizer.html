@@ -519,15 +519,141 @@ function setMode(mode) {
 // Reset button
 document.getElementById('btn-reset').addEventListener('click', init);
 
-// Stub render functions — replaced in later tasks
+// ── Rendering ───────────────────────────────────────────────────
+
 function renderAll() {
   renderSidebar();
   renderDiagram();
   renderHistory();
 }
-function renderSidebar() {}
-function renderDiagram() {}
+
+// Returns indices of rows whose last dot can be removed while keeping partition valid.
+function getMoveableRows(p) {
+  const rows = [];
+  for (let i = 0; i < p.length; i++) {
+    const afterRemoval = p[i] - 1;
+    if (i === p.length - 1 || afterRemoval >= p[i + 1]) rows.push(i);
+  }
+  return rows;
+}
+
+function renderDiagram() {
+  const { currentPartition: p, selected, mode } = appState;
+  const diagramEl = document.getElementById('diagram');
+  diagramEl.innerHTML = '';
+
+  const moveableRows = (mode === 'interactive' && selected === null)
+    ? getMoveableRows(p) : [];
+
+  const ghosts = (mode === 'interactive' && selected !== null)
+    ? getGhostSlots(p, selected) : [];
+
+  const ferrers = document.createElement('div');
+  ferrers.className = 'ferrers';
+
+  for (let rowIdx = 0; rowIdx < p.length; rowIdx++) {
+    const row = document.createElement('div');
+    row.className = 'ferrers-row';
+
+    for (let col = 0; col < p[rowIdx]; col++) {
+      const isEnd = col === p[rowIdx] - 1;
+      const dot = document.createElement('div');
+
+      if (selected === rowIdx && isEnd) {
+        dot.className = 'dot selected';
+        dot.addEventListener('click', deselectDot);
+      } else if (mode === 'interactive' && moveableRows.includes(rowIdx) && isEnd) {
+        dot.className = 'dot moveable';
+        dot.addEventListener('click', () => selectDot(rowIdx));
+      } else {
+        dot.className = 'dot';
+      }
+      row.appendChild(dot);
+    }
+
+    // Ghost slot at end of this row (if one targets this row)
+    if (selected !== null) {
+      const ghost = ghosts.find(g => g.type === 'row' && g.displayRow === rowIdx);
+      if (ghost) {
+        const ghostEl = document.createElement('div');
+        ghostEl.className = 'dot-ghost';
+        ghostEl.addEventListener('click', () => executeMove(ghost.result));
+        row.appendChild(ghostEl);
+      }
+    }
+
+    ferrers.appendChild(row);
+  }
+
+  // New-row ghost at the bottom
+  if (selected !== null) {
+    const newRowGhost = ghosts.find(g => g.type === 'newrow');
+    if (newRowGhost) {
+      const row = document.createElement('div');
+      row.className = 'ferrers-row';
+      const ghostEl = document.createElement('div');
+      ghostEl.className = 'dot-ghost';
+      ghostEl.addEventListener('click', () => executeMove(newRowGhost.result));
+      row.appendChild(ghostEl);
+      ferrers.appendChild(row);
+    }
+  }
+
+  diagramEl.appendChild(ferrers);
+
+  // Stuck state: all move-one-unit neighbors are visited (but not all partitions visited)
+  if (mode === 'interactive' && selected === null) {
+    const allNeighborsVisited = neighborsMove(p).every(nb => appState.visited.has(partKey(nb)));
+    if (allNeighborsVisited && appState.visited.size < appState.allParts.length) {
+      const msg = document.createElement('p');
+      msg.className = 'stuck-msg';
+      msg.textContent = 'No unvisited moves available — try Reset or switch to Auto-solve.';
+      diagramEl.appendChild(msg);
+    }
+  }
+}
+
+function renderSidebar() {
+  const { currentPartition: p, visited, allParts, history, mode } = appState;
+
+  document.getElementById('current-partition').textContent =
+    '(' + p.join(', ') + ')';
+
+  const total = allParts.length;
+  const done  = visited.size;
+  const pct   = total > 0 ? (done / total) * 100 : 0;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-text').textContent =
+    `${done} / ${total} partitions visited`;
+
+  const lastEntry = history[history.length - 1];
+  const opSection = document.getElementById('last-op-section');
+  if (history.length < 2 || !lastEntry.op) {
+    opSection.style.display = 'none';
+  } else {
+    opSection.style.display = '';
+    const badge = document.getElementById('op-badge');
+    badge.textContent = lastEntry.op;
+    badge.className = 'op-badge op-' + lastEntry.op;
+    document.getElementById('op-detail').textContent =
+      '(' + lastEntry.from.join(', ') + ') → (' + lastEntry.partition.join(', ') + ')';
+  }
+
+  // Auto-solve step counter
+  document.getElementById('step-info').textContent =
+    mode === 'autosolve'
+      ? `Step ${appState.autoIdx + 1} / ${appState.sequence.length}`
+      : `Step — / —`;
+}
+
+// Stub — implemented in Task 7
 function renderHistory() {}
+
+// Stubs — filled in Task 6
+function getGhostSlots(p, selectedRow) { return []; }
+function selectDot(rowIdx) {}
+function deselectDot() {}
+function executeMove(result) {}
 
 // Boot
 init();
