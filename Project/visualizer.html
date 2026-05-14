@@ -343,7 +343,7 @@ function neighborsSplitMerge(p) {
   for (let i = 0; i < p.length; i++) {
     for (let a = 1; a < p[i]; a++) {
       const b = p[i] - a;
-      const np = [...p.slice(0, i), ...p.slice(i + 1), a, b].sort((a, b) => b - a);
+      const np = [...p.slice(0, i), ...p.slice(i + 1), a, b].sort((x, y) => y - x);
       const k = partKey(np);
       if (k !== orig) seen.set(k, np);
     }
