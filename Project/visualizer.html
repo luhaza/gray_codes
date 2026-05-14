@@ -238,6 +238,53 @@ body {
 }
 .legend-row { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: #666; }
 .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* ── Draggable resize handles ── */
+.resize-handle {
+  width: 5px;
+  background: transparent;
+  cursor: col-resize;
+  flex-shrink: 0;
+  transition: background 0.2s;
+  /* Widen the grab target without affecting layout */
+  position: relative;
+}
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: -4px; right: -4px;
+}
+.resize-handle:hover, .resize-handle.dragging { background: rgba(126,184,247,0.35); }
+
+/* ── Full-mode neighbor tiles ── */
+#neighbor-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 24px;
+  justify-content: center;
+  max-width: 640px;
+}
+.neighbor-tile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid #2a2a4a;
+  background: #1a1a2e;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  font-family: monospace;
+  font-size: 0.84rem;
+  color: #e0e0e0;
+  user-select: none;
+}
+.neighbor-tile:hover { background: #2a2a4a; border-color: #7eb8f7; }
+.tile-op {
+  font-size: 0.7rem; font-weight: bold;
+  padding: 2px 8px; border-radius: 10px;
+}
 </style>
 </head>
 <body>
@@ -259,6 +306,14 @@ body {
       <div class="mode-tabs">
         <div class="mode-tab active" id="tab-interactive">Interactive</div>
         <div class="mode-tab" id="tab-autosolve">Auto-solve</div>
+      </div>
+    </div>
+
+    <div class="sidebar-section" id="interact-style-section">
+      <div class="sidebar-label">Interaction style</div>
+      <div class="mode-tabs">
+        <div class="mode-tab active" id="tab-dot">Dot</div>
+        <div class="mode-tab" id="tab-full">Full</div>
       </div>
     </div>
 
@@ -303,13 +358,18 @@ body {
     </div>
   </div>
 
+  <div class="resize-handle" id="resize-left"></div>
+
   <div id="diagram-area">
     <div id="diagram"></div>
+    <div id="neighbor-tiles"></div>
     <div id="congrats-popup">
       <p id="congrats-msg"></p>
       <div id="congrats-reset">↺ Play again</div>
     </div>
   </div>
+
+  <div class="resize-handle" id="resize-right"></div>
 
   <div id="history-panel">
     <div id="history-header">History</div>
@@ -496,6 +556,7 @@ const appState = {
   selected: null,           // null | rowIndex of selected dot
   autoplayTimer: null,      // setInterval ID or null
   autoIdx: 0,               // current step index in autosolve
+  interactiveStyle: 'dot',  // 'dot' | 'full'
 };
 
 // Speed slider: value 1..10 → interval ms (2000ms..100ms)
@@ -544,12 +605,52 @@ function setMode(mode) {
   document.getElementById('tab-interactive').classList.toggle('active', mode === 'interactive');
   document.getElementById('tab-autosolve').classList.toggle('active', mode === 'autosolve');
   document.getElementById('autosolve-controls').classList.toggle('disabled', mode === 'interactive');
+  document.getElementById('interact-style-section').style.display = mode === 'interactive' ? '' : 'none';
   renderAll();
 }
 
 // Reset button
 document.getElementById('btn-reset').addEventListener('click', init);
 document.getElementById('congrats-reset').addEventListener('click', init);
+
+// Interaction style tabs (interactive mode only)
+document.getElementById('tab-dot').addEventListener('click', () => setInteractStyle('dot'));
+document.getElementById('tab-full').addEventListener('click', () => setInteractStyle('full'));
+
+function setInteractStyle(style) {
+  if (appState.interactiveStyle === style) return;
+  appState.interactiveStyle = style;
+  appState.selected = null;
+  document.getElementById('tab-dot').classList.toggle('active', style === 'dot');
+  document.getElementById('tab-full').classList.toggle('active', style === 'full');
+  renderDiagram();
+}
+
+// Draggable sidebar resize handles
+function setupResize(handleId, panelId, dir) {
+  const handle = document.getElementById(handleId);
+  const panel  = document.getElementById(panelId);
+  handle.addEventListener('mousedown', e => {
+    const startX = e.clientX;
+    const startW = panel.offsetWidth;
+    handle.classList.add('dragging');
+    function onMove(e) {
+      const w = Math.max(160, Math.min(520, startW + dir * (e.clientX - startX)));
+      panel.style.width = w + 'px';
+      panel.style.minWidth = w + 'px';
+    }
+    function onUp() {
+      handle.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    e.preventDefault();
+  });
+}
+setupResize('resize-left',  'sidebar',       1);
+setupResize('resize-right', 'history-panel', -1);
 
 // ── Rendering ───────────────────────────────────────────────────
 
@@ -570,14 +671,19 @@ function getMoveableRows(p) {
 }
 
 function renderDiagram() {
-  const { currentPartition: p, selected, mode } = appState;
-  const diagramEl = document.getElementById('diagram');
+  const { currentPartition: p, selected, mode, interactiveStyle } = appState;
+  const diagramEl   = document.getElementById('diagram');
+  const tilesEl     = document.getElementById('neighbor-tiles');
   diagramEl.innerHTML = '';
+  tilesEl.innerHTML   = '';
 
-  const moveableRows = (mode === 'interactive' && selected === null)
+  const fullMode = mode === 'interactive' && interactiveStyle === 'full';
+
+  // ── Ferrers diagram ──────────────────────────────────────────
+  const moveableRows = (mode === 'interactive' && !fullMode && selected === null)
     ? getMoveableRows(p) : [];
 
-  const ghosts = (mode === 'interactive' && selected !== null)
+  const ghosts = (mode === 'interactive' && !fullMode && selected !== null)
     ? getGhostSlots(p, selected) : [];
 
   const ferrers = document.createElement('div');
@@ -591,10 +697,10 @@ function renderDiagram() {
       const isEnd = col === p[rowIdx] - 1;
       const dot = document.createElement('div');
 
-      if (selected === rowIdx && isEnd) {
+      if (!fullMode && selected === rowIdx && isEnd) {
         dot.className = 'dot selected';
         dot.addEventListener('click', deselectDot);
-      } else if (mode === 'interactive' && moveableRows.includes(rowIdx) && isEnd) {
+      } else if (!fullMode && moveableRows.includes(rowIdx) && isEnd) {
         dot.className = 'dot moveable';
         dot.addEventListener('click', () => selectDot(rowIdx));
       } else {
@@ -603,8 +709,7 @@ function renderDiagram() {
       row.appendChild(dot);
     }
 
-    // Ghost slot at end of this row (if one targets this row)
-    if (selected !== null) {
+    if (!fullMode && selected !== null) {
       const ghost = ghosts.find(g => g.type === 'row' && g.displayRow === rowIdx);
       if (ghost) {
         const ghostEl = document.createElement('div');
@@ -617,8 +722,7 @@ function renderDiagram() {
     ferrers.appendChild(row);
   }
 
-  // New-row ghost at the bottom
-  if (selected !== null) {
+  if (!fullMode && selected !== null) {
     const newRowGhost = ghosts.find(g => g.type === 'newrow');
     if (newRowGhost) {
       const row = document.createElement('div');
@@ -633,7 +737,33 @@ function renderDiagram() {
 
   diagramEl.appendChild(ferrers);
 
-  // Congrats popup: all partitions visited in interactive mode
+  // ── Full mode: neighbor tiles ────────────────────────────────
+  if (fullMode) {
+    const unvisited = neighborsCombined(p).filter(nb => !appState.visited.has(partKey(nb)));
+    if (unvisited.length === 0 && appState.visited.size < appState.allParts.length) {
+      const msg = document.createElement('p');
+      msg.className = 'stuck-msg';
+      msg.textContent = 'No unvisited moves available — try Reset.';
+      tilesEl.appendChild(msg);
+    } else {
+      unvisited.forEach(nb => {
+        const op = classifyOp(p, nb);
+        const tile = document.createElement('div');
+        tile.className = 'neighbor-tile';
+        const badge = document.createElement('span');
+        badge.className = 'tile-op op-' + op;
+        badge.textContent = op;
+        const label = document.createElement('span');
+        label.textContent = '(' + nb.join(', ') + ')';
+        tile.appendChild(badge);
+        tile.appendChild(label);
+        tile.addEventListener('click', () => executeMove(nb));
+        tilesEl.appendChild(tile);
+      });
+    }
+  }
+
+  // ── Congrats popup ───────────────────────────────────────────
   const popup = document.getElementById('congrats-popup');
   if (mode === 'interactive' && appState.visited.size === appState.allParts.length && appState.allParts.length > 0) {
     document.getElementById('congrats-msg').textContent =
@@ -643,8 +773,8 @@ function renderDiagram() {
     popup.classList.remove('visible');
   }
 
-  // Stuck state: all move-one-unit neighbors are visited (but not all partitions visited)
-  if (mode === 'interactive' && selected === null) {
+  // ── Dot mode stuck message ───────────────────────────────────
+  if (!fullMode && mode === 'interactive' && selected === null) {
     const allNeighborsVisited = neighborsMove(p).every(nb => appState.visited.has(partKey(nb)));
     if (allNeighborsVisited && appState.visited.size < appState.allParts.length) {
       const msg = document.createElement('p');
