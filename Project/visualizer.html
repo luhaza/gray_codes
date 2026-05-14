@@ -94,13 +94,14 @@ body {
 /* Playback controls */
 .playback-controls { display: flex; flex-direction: column; gap: 10px; }
 .play-row { display: flex; gap: 8px; }
+.play-row .btn { flex: 1; }
 .btn {
   padding: 7px 14px; border-radius: 5px; font-size: 0.82rem; cursor: pointer;
   border: 1px solid #2a2a4a; background: #2a2a4a; color: #e0e0e0;
   user-select: none; transition: background 0.15s;
 }
 .btn:hover { background: #3a3a5a; }
-.btn-primary { background: #7eb8f7; color: #0f0f1a; border-color: #7eb8f7; font-weight: bold; flex: 1; }
+.btn-primary { background: #7eb8f7; color: #0f0f1a; border-color: #7eb8f7; font-weight: bold; }
 .btn-primary:hover { background: #9ecfff; }
 .speed-row { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: #aaa; }
 #speed-slider { flex: 1; accent-color: #7eb8f7; }
