@@ -189,6 +189,21 @@ body {
 }
 #congrats-reset:hover { background: rgba(74, 222, 128, 0.35); }
 
+/* orange variant when user used extra moves */
+#congrats-popup.slow {
+  background: rgba(251, 146, 60, 0.15);
+  border-color: #fb923c;
+}
+#congrats-popup.slow p {
+  color: #fb923c;
+  text-shadow: 0 0 12px rgba(251, 146, 60, 0.5);
+}
+#congrats-popup.slow #congrats-reset {
+  background: rgba(251, 146, 60, 0.2); color: #fb923c;
+  border-color: #fb923c;
+}
+#congrats-popup.slow #congrats-reset:hover { background: rgba(251, 146, 60, 0.35); }
+
 /* ── Right history panel (240px) ── */
 #history-panel {
   width: 240px; min-width: 240px;
@@ -766,8 +781,11 @@ function renderDiagram() {
   // ── Congrats popup ───────────────────────────────────────────
   const popup = document.getElementById('congrats-popup');
   if (mode === 'interactive' && appState.visited.size === appState.allParts.length && appState.allParts.length > 0) {
-    document.getElementById('congrats-msg').textContent =
-      `Congrats! You found all partitions for n = ${appState.n} 🎉`;
+    const slow = appState.history.length > appState.allParts.length;
+    popup.classList.toggle('slow', slow);
+    document.getElementById('congrats-msg').textContent = slow
+      ? `You found all partitions for n = ${appState.n}, but used ${appState.history.length - 1} moves (minimum is ${appState.allParts.length - 1}).`
+      : `Congrats! You found all partitions for n = ${appState.n} 🎉`;
     popup.classList.add('visible');
   } else {
     popup.classList.remove('visible');
