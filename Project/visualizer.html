@@ -161,6 +161,33 @@ body {
   margin-top: 20px; font-size: 0.82rem; color: #666; font-style: italic; text-align: center;
 }
 
+/* ── Congrats popup ── */
+#congrats-popup {
+  display: none;
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(34, 197, 94, 0.15);
+  border: 2px solid #4ade80;
+  border-radius: 12px;
+  padding: 28px 36px;
+  text-align: center;
+  backdrop-filter: blur(4px);
+  z-index: 10;
+}
+#congrats-popup.visible { display: block; }
+#congrats-popup p {
+  font-size: 1.1rem; color: #4ade80; font-weight: bold; margin-bottom: 18px;
+  text-shadow: 0 0 12px rgba(74, 222, 128, 0.5);
+}
+#congrats-reset {
+  background: rgba(74, 222, 128, 0.2); color: #4ade80;
+  border: 1px solid #4ade80; border-radius: 6px;
+  padding: 8px 22px; font-size: 0.88rem; cursor: pointer;
+  transition: background 0.15s;
+}
+#congrats-reset:hover { background: rgba(74, 222, 128, 0.35); }
+
 /* ── Right history panel (240px) ── */
 #history-panel {
   width: 240px; min-width: 240px;
@@ -278,6 +305,10 @@ body {
 
   <div id="diagram-area">
     <div id="diagram"></div>
+    <div id="congrats-popup">
+      <p id="congrats-msg"></p>
+      <div id="congrats-reset">↺ Play again</div>
+    </div>
   </div>
 
   <div id="history-panel">
@@ -518,6 +549,7 @@ function setMode(mode) {
 
 // Reset button
 document.getElementById('btn-reset').addEventListener('click', init);
+document.getElementById('congrats-reset').addEventListener('click', init);
 
 // ── Rendering ───────────────────────────────────────────────────
 
@@ -600,6 +632,16 @@ function renderDiagram() {
   }
 
   diagramEl.appendChild(ferrers);
+
+  // Congrats popup: all partitions visited in interactive mode
+  const popup = document.getElementById('congrats-popup');
+  if (mode === 'interactive' && appState.visited.size === appState.allParts.length && appState.allParts.length > 0) {
+    document.getElementById('congrats-msg').textContent =
+      `Congrats! You found all partitions for n = ${appState.n} 🎉`;
+    popup.classList.add('visible');
+  } else {
+    popup.classList.remove('visible');
+  }
 
   // Stuck state: all move-one-unit neighbors are visited (but not all partitions visited)
   if (mode === 'interactive' && selected === null) {
