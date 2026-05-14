@@ -460,12 +460,11 @@ function neighborsCombined(p) {
 }
 
 // Classify the operation from p to q.
-// Split/merge wins over move when both neighborhoods contain q.
+// Move wins when both neighborhoods contain q (merging a singleton == moving one unit).
 function classifyOp(p, q) {
   const qk = partKey(q);
-  const smKeys = neighborsSplitMerge(p).map(partKey);
-  if (smKeys.includes(qk)) return q.length > p.length ? 'split' : 'merge';
-  return 'move';
+  if (neighborsMove(p).some(nb => partKey(nb) === qk)) return 'move';
+  return q.length > p.length ? 'split' : 'merge';
 }
 
 // ── Warnsdorff Algorithm ────────────────────────────────────────
@@ -531,7 +530,7 @@ function greedyWarnsdorff(n) {
   assert(classifyOp([3,2,1], [4,1,1]) === 'move',  'classifyOp move');
   assert(classifyOp([4],     [2,2])  === 'split', 'classifyOp split');
   assert(classifyOp([2,2],   [4])    === 'merge', 'classifyOp merge');
-  assert(classifyOp([3,2,1], [3,3])  === 'merge', 'classifyOp [3,2,1]->[3,3] is merge');
+  assert(classifyOp([3,2,1], [3,3])  === 'move',  'classifyOp [3,2,1]->[3,3] is move (singleton merge = move)');
 
   // greedyWarnsdorff — verifies Hamiltonian coverage for n=1..6
   for (let n = 1; n <= 6; n++) {
